@@ -1,3 +1,4 @@
+from cv2 import hconcat
 import numpy as np
 import cv2
 
@@ -14,9 +15,8 @@ def gray_scaling(input_img):
 
 # Convolution
 def convolution(input_img, mask):
-    gray_scaled_img = gray_scaling(input_img)
-    height, width, channels = gray_scaled_img.shape
-    result = np.zeros((height, width, 1))
+    height, width, channels = input_img.shape
+    result = np.zeros((height, width, channels))
     mask_size = len(mask)
     padding = mask_size//2 + 1
 
@@ -25,9 +25,9 @@ def convolution(input_img, mask):
             current_pixel_value = 0
             for x in range(mask_size):
                 for y in range(mask_size):
-                    current_pixel_value += gray_scaled_img[i+x, j+y] * mask[x][y]
+                    current_pixel_value += input_img[i+x, j+y] * mask[x][y]
             result[i, j] = max(0, current_pixel_value)
-    
+
     return result
 
 # Max pooling for gray level image
@@ -59,17 +59,37 @@ def binarization(input_img, threshold):
     
     return result
 
+# Pixel value oppsite
+def opposite(input_img):
+    height, width, channels = input_img.shape
+    result = np.zeros((height, width, channels))
+
+    for i in range(height):
+        for j in range(width):
+            result[i, j] = (-1) * (0 - input_img[i, j])
+    
+    return result
+                
+
 def main():
     edge_detector = [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
+    low_pass_filter = [[1/16, 1/8, 1/16], [1/8, 1/4, 1/8], [1/16, 1/8, 1/16]]
 
     img = cv2.imread('gura.jpg')
 
-    # conv_img = convolution(img, edge_detector)
+    gray_img = gray_scaling(img)
+    cv2.imwrite("gray_img.jpg", gray_img)
+    conv_img = convolution(gray_img, edge_detector)
+    cv2.imwrite("edge_detected.jpg", conv_img)
+    bina_img = binarization(conv_img, 40)
+    cv2.imwrite("binarization.jpg", bina_img)
+    low_passed_img = convolution(bina_img, low_pass_filter)
+    cv2.imwrite("low_passed.jpg", low_passed_img)
+    second_bina_img = binarization(low_passed_img, 40)
+    cv2.imwrite("second_bina.jpg", second_bina_img)
 
-    # cv2.imwrite('conv_img.png', conv_img)
-
-    max_pooling_img = max_pooling(img, 2, 2)
-    cv2.imwrite('max_pooling_img.png', max_pooling_img)
+    result = hconcat([gray_img, conv_img, bina_img, low_passed_img, second_bina_img])
+    cv2.imwrite("result.jpg", result)
 
 if __name__ == "__main__":
     main()
