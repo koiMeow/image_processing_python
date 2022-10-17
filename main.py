@@ -1,4 +1,3 @@
-from cv2 import hconcat
 import numpy as np
 import cv2
 
@@ -13,20 +12,30 @@ def gray_scaling(input_img):
     
     return result
 
+def padding(input_img, padding_size):
+    height, width, channels = input_img.shape
+    result = np.zeros((height + padding_size*2, width + padding_size*2, channels))
+    for i in range(padding_size, height+padding_size*2-1):
+        for j in range(padding_size, width+padding_size*2-1):
+            result[i, j] = input_img[i-1, j-1]
+
+    return result
+
 # Convolution
 def convolution(input_img, mask):
     height, width, channels = input_img.shape
     result = np.zeros((height, width, channels))
     mask_size = len(mask)
-    padding = mask_size//2 + 1
+    padding_size = mask_size//2
+    padded_input_img = padding(input_img, padding_size)
 
-    for i in range(height-padding):
-        for j in range(width-padding):
+    for i in range(padding_size, height+padding_size-2):
+        for j in range(padding_size, width+padding_size-2):
             current_pixel_value = 0
-            for x in range(mask_size):
-                for y in range(mask_size):
-                    current_pixel_value += input_img[i+x, j+y] * mask[x][y]
-            result[i, j] = max(0, current_pixel_value)
+            for x in range(-padding_size, padding_size+1):
+                for y in range(-padding_size, padding_size+1):
+                    current_pixel_value += padded_input_img[i+x, j+y] * mask[x+padding_size][y+padding_size]
+            result[i-padding_size, j-padding_size] = max(0, current_pixel_value)
 
     return result
 
@@ -70,25 +79,34 @@ def opposite(input_img):
     
     return result
                 
+# Sobel gradient calculation
+def sobel(v_img, h_img):
+    height, width, channels = v_img.shape
+    result = np.zeros((height, width, channels))
+
+    for i in range(height):
+        for j in range(width):
+            result[i, j] = (v_img[i, j]**2 + h_img[i, j]**2) ** 0.5
+    
+    return result
 
 def main():
     edge_detector = [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
+    sobel_detector_vertical = [[-1, 0 ,1], [-2, 0, 2], [-1, 0, 1]]
+    sobel_detector_horizontal = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
     low_pass_filter = [[1/16, 1/8, 1/16], [1/8, 1/4, 1/8], [1/16, 1/8, 1/16]]
 
     img = cv2.imread('gura.jpg')
 
     gray_img = gray_scaling(img)
     cv2.imwrite("gray_img.jpg", gray_img)
-    conv_img = convolution(gray_img, edge_detector)
-    cv2.imwrite("edge_detected.jpg", conv_img)
-    bina_img = binarization(conv_img, 40)
-    cv2.imwrite("binarization.jpg", bina_img)
-    low_passed_img = convolution(bina_img, low_pass_filter)
-    cv2.imwrite("low_passed.jpg", low_passed_img)
-    second_bina_img = binarization(low_passed_img, 40)
-    cv2.imwrite("second_bina.jpg", second_bina_img)
 
-    result = hconcat([gray_img, conv_img, bina_img, low_passed_img, second_bina_img])
+    vedge_img = convolution(gray_img, sobel_detector_vertical)
+    hedge_img = convolution(gray_img, sobel_detector_horizontal)
+    sobel_img = sobel(vedge_img, hedge_img)
+    bina_img = binarization(gray_img, 190)
+
+    result = cv2.hconcat([gray_img, sobel_img, bina_img])
     cv2.imwrite("result.jpg", result)
 
 if __name__ == "__main__":
