@@ -25,8 +25,7 @@ def padding(input_img, padding_size):
 def convolution(input_img, mask):
     height, width, channels = input_img.shape
     result = np.zeros((height, width, channels))
-    mask_size = len(mask)
-    padding_size = mask_size//2
+    padding_size = len(mask) // 2
     padded_input_img = padding(input_img, padding_size)
 
     for i in range(padding_size, height+padding_size-2):
