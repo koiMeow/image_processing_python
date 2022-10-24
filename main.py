@@ -103,17 +103,7 @@ def main():
     vedge_img = convolution(gray_img, sobel_detector_vertical)
     hedge_img = convolution(gray_img, sobel_detector_horizontal)
     sobel_img = sobel(vedge_img, hedge_img)
-    bina_img = binarization(sobel_img, 30)
-
-    bina_img_list = []
-    for i in range(1, 251, 10):
-        bina_img_list.append(opposite(binarization(sobel_img, i)))
-    
-    bina_result = cv2.hconcat(bina_img_list)
-    cv2.imwrite("bina_result.jpg", bina_result)
-
-    result = cv2.hconcat([gray_img, sobel_img, opposite(sobel_img), bina_img, opposite(bina_img)])
-    cv2.imwrite("result.jpg", result)
+    cv2.imwrite('alt_edge_img.jpg', sobel_img)
 
 if __name__ == "__main__":
     main()
