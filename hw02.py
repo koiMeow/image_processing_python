@@ -21,7 +21,7 @@ def padding_zero(input_img):
 
     for i in range(1, height+1):
         for j in range(1, width+1):
-            result[i, j] = input_img[i-1, j-1]
+            result[i, j] = input_img[i-1, j-1, 0]
     
     return result
 
@@ -37,31 +37,47 @@ def convolution(input_img, mask):
             for x in range(-1, 2):
                 for y in range(-1, 2):
                     current_pixel_value += padded[i+x, j+y] * mask[x+1][y+1]
-            # result[i-1, j-1] = np.sum(np.multiply(padded[i-1:i+2, j-1:j+2], mask))
             result[i-1, j-1] = current_pixel_value
 
     return result
 
-# Draw histogram
-def draw_hist(input_img):
+# Median filter
+def median_filter(input_img):
     height, width, channels = input_img.shape
-    pixel_values = np.zeros((256))
-    
-    for i in range(height):
-        for j in range(width):
-            pixel_values[input_img[i, j, 0]] += 1
-    
-    plt.hist(pixel_values, bins='auto')
-    plt.show()
+    result = np.zeros((height, width, 1))
+    padded = padding_zero(input_img)
+
+    for i in range(1, height+1):
+        for j in range(1, width+1):
+            current_pixel_value = []
+            for x in range(-1, 2):
+                for y in range(-1, 2):
+                    current_pixel_value.append(padded[i+x, j+y])
+            current_pixel_value.sort()
+            result[i-1, j-1] = current_pixel_value[4]
+
+    return result
+
+# Draw histogram
+def draw_hist(input_img, title):
+    plt.hist(input_img.ravel(), 256, [0,255])
+    plt.title(title)
+    plt.savefig(title)
+    plt.close()
 
 def main():
-    sobel_detector_y = np.array([[-1, 0 ,1], [-2, 0, 2], [-1, 0, 1]])
-    sobel_detector_x = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
-    
-    img = cv2.imread('gura.jpg')
-    noise_img = cv2.imread('noise_image.png')
+    mean_filter_mask = np.array([[1/9, 1/9, 1/9], [1/9, 1/9, 1/9], [1/9, 1/9, 1/9]])
 
-    draw_hist(noise_img)
+    n_img = cv2.imread('noise_image.png')
+    mean_img = convolution(n_img, mean_filter_mask)
+    median_img = median_filter(n_img)
+
+    cv2.imwrite('output1.png', mean_img)
+    cv2.imwrite('output2.png', median_img)
+
+    draw_hist(n_img, "noise_image_his.png")
+    draw_hist(mean_img, "output1_his.png")
+    draw_hist(median_img, "output2_his.png")
 
 if __name__ == '__main__':
     main()
